@@ -5,7 +5,9 @@ const fs = require("fs");
 const path = require("path");
 
 const PORT = process.env.PORT || 3000;
-const ROOT = path.join(__dirname, "public");
+const ROOT = __dirname;
+// Archivos internos que no se sirven (viven junto al sitio en la raíz).
+const BLOCK = new Set(["server.js", "package.json", "deploy.sh", "README.md"]);
 
 const MIME = {
   ".html": "text/html; charset=utf-8",
@@ -32,6 +34,10 @@ const server = http.createServer((req, res) => {
       .replace(/^(\.\.[/\\])+/, "");
     let filePath = path.join(ROOT, safePath);
     if (!filePath.startsWith(ROOT)) filePath = path.join(ROOT, "index.html");
+
+    // No servir archivos internos ni ocultos (server.js, .git, etc.)
+    const base = path.basename(filePath);
+    if (BLOCK.has(base) || base.startsWith(".")) filePath = path.join(ROOT, "index.html");
 
     fs.stat(filePath, (err, stat) => {
       if (err || !stat.isFile()) {
