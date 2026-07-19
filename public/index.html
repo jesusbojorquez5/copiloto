@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <title>Copiloto</title>
+  <meta name="theme-color" content="#05070d" />
+
+  <!-- PWA / iPad: pantalla completa al añadir a inicio -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Copiloto" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" href="icons/icon-192.png" />
+
+  <!-- Mapa (Leaflet) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Pantalla de arranque: un toque desbloquea GPS, brújula, audio y pantalla-siempre-encendida (iOS lo exige) -->
+  <div id="start" class="start">
+    <div class="start-inner">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">Copiloto</span>
+      </div>
+      <p class="start-sub">Tu tablero de auto</p>
+      <button id="startBtn" class="start-btn">TOCAR PARA INICIAR</button>
+      <p id="startHint" class="start-hint">Permite <b>Ubicación</b> cuando el iPad lo pida.</p>
+    </div>
+  </div>
+
+  <!-- Aviso para instalar a pantalla completa (solo si se abre en Safari, no en modo app) -->
+  <div id="installTip" class="install-tip hidden">
+    <div class="install-card">
+      <button id="installClose" class="install-close">×</button>
+      <h3>Ponlo a pantalla completa</h3>
+      <ol>
+        <li>Toca <b>Compartir</b> <span class="ios-share">􀈂</span> en Safari.</li>
+        <li>Elige <b>Añadir a inicio</b>.</li>
+        <li>Ábrelo desde el ícono de inicio.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <!-- Barra superior -->
+    <header class="topbar">
+      <div class="clock-block">
+        <div id="clock" class="clock">--:--</div>
+        <div id="date" class="date">—</div>
+      </div>
+
+      <div id="weather" class="weather">
+        <div class="wx-icon" id="wxIcon">·</div>
+        <div class="wx-main">
+          <div class="wx-temp" id="wxTemp">--°</div>
+          <div class="wx-desc" id="wxDesc">—</div>
+        </div>
+        <div class="wx-hilo" id="wxHiLo"></div>
+      </div>
+
+      <div class="controls">
+        <div id="net" class="pill net" title="Conexión">GPS</div>
+        <button id="themeBtn" class="ctrl-btn" title="Día / Noche / Auto">◐</button>
+        <button id="tripResetTop" class="ctrl-btn hidden">↺</button>
+      </div>
+    </header>
+
+    <!-- Zona principal -->
+    <main class="grid">
+      <!-- Velocímetro + brújula -->
+      <section class="panel speedo">
+        <svg viewBox="0 0 300 300" class="gauge" aria-hidden="true">
+          <defs>
+            <linearGradient id="arcGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#39d0ff"/>
+              <stop offset="55%" stop-color="#3a7bff"/>
+              <stop offset="100%" stop-color="#a56bff"/>
+            </linearGradient>
+          </defs>
+          <!-- pista -->
+          <path id="gaugeTrack" class="gauge-track" fill="none" stroke-width="16" stroke-linecap="round"/>
+          <!-- valor -->
+          <path id="gaugeValue" class="gauge-value" fill="none" stroke="url(#arcGrad)" stroke-width="16" stroke-linecap="round"/>
+        </svg>
+        <div class="speed-readout">
+          <div id="speed" class="speed-num">0</div>
+          <div class="speed-unit">km/h</div>
+        </div>
+        <div class="compass">
+          <div class="compass-dir" id="heading">—</div>
+          <div class="compass-arrow" id="headingArrow" style="transform:rotate(0deg)">▲</div>
+        </div>
+      </section>
+
+      <!-- Mapa -->
+      <section class="panel map-panel">
+        <div id="map"></div>
+        <div id="mapMsg" class="map-msg">Buscando señal…</div>
+      </section>
+
+      <!-- Lanzador de apps + radio -->
+      <section class="panel launch">
+        <div class="launch-group">
+          <div class="launch-label">Navegar</div>
+          <div class="launch-row">
+            <a class="app-btn nav" href="https://waze.com/ul" target="_blank" rel="noopener">
+              <span class="app-ico">🧭</span><span class="app-name">Waze</span></a>
+            <a class="app-btn nav" id="gmaps" href="https://maps.google.com" target="_blank" rel="noopener">
+              <span class="app-ico">🗺️</span><span class="app-name">Google</span></a>
+            <a class="app-btn nav" href="https://maps.apple.com/" target="_blank" rel="noopener">
+              <span class="app-ico">📍</span><span class="app-name">Mapas</span></a>
+          </div>
+        </div>
+
+        <div class="launch-group">
+          <div class="launch-label">Música</div>
+          <div class="launch-row">
+            <a class="app-btn music" href="https://open.spotify.com" target="_blank" rel="noopener">
+              <span class="app-ico">🎧</span><span class="app-name">Spotify</span></a>
+            <a class="app-btn music" href="https://music.apple.com" target="_blank" rel="noopener">
+              <span class="app-ico">🎵</span><span class="app-name">Apple</span></a>
+            <a class="app-btn music" href="https://music.youtube.com" target="_blank" rel="noopener">
+              <span class="app-ico">▶️</span><span class="app-name">YT Music</span></a>
+          </div>
+        </div>
+
+        <div class="launch-group radio">
+          <div class="launch-label">Radio en vivo <span class="radio-now" id="radioNow"></span></div>
+          <div class="radio-controls">
+            <button id="radioPrev" class="radio-btn">⏮</button>
+            <button id="radioToggle" class="radio-btn play">▶</button>
+            <button id="radioNext" class="radio-btn">⏭</button>
+            <input id="vol" class="vol" type="range" min="0" max="1" step="0.05" value="0.7" />
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Cinta de viaje -->
+    <footer class="trip">
+      <div class="trip-item"><span class="trip-k">Distancia</span><span class="trip-v" id="tDist">0.0 km</span></div>
+      <div class="trip-item"><span class="trip-k">Máx</span><span class="trip-v" id="tMax">0 km/h</span></div>
+      <div class="trip-item"><span class="trip-k">Promedio</span><span class="trip-v" id="tAvg">0 km/h</span></div>
+      <div class="trip-item"><span class="trip-k">Tiempo</span><span class="trip-v" id="tTime">0:00</span></div>
+      <button id="tripReset" class="trip-reset">Reiniciar viaje</button>
+    </footer>
+  </div>
+
+  <audio id="radio" preload="none" crossorigin="anonymous"></audio>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
