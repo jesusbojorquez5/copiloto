@@ -1,11 +1,11 @@
 /* Copiloto service worker: cachea el cascarón para que abra al instante y sin red.
    Mapa, clima y radio siguen necesitando internet (se degradan solos). */
-const CACHE = "copiloto-v1";
+const CACHE = "copiloto-v3";
 const SHELL = [
   "./",
   "index.html",
-  "style.css",
-  "app.js",
+  "style.css?v=3",
+  "app.js?v=3",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/apple-touch-icon.png",

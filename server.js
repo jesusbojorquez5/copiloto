@@ -41,11 +41,12 @@ const server = http.createServer((req, res) => {
       const ext = path.extname(filePath).toLowerCase();
       const type = MIME[ext] || "application/octet-stream";
       res.setHeader("Content-Type", type);
-      // El service worker y el manifest no se cachean fuerte; el resto sí.
-      if (ext === ".html" || filePath.endsWith("sw.js")) {
-        res.setHeader("Cache-Control", "no-cache");
+      // Código y shell siempre frescos (evita mezclar versiones al actualizar);
+      // el service worker es quien cachea para offline. Solo imágenes se cachean.
+      if (ext === ".png" || ext === ".jpg" || ext === ".svg" || ext === ".ico") {
+        res.setHeader("Cache-Control", "public, max-age=86400");
       } else {
-        res.setHeader("Cache-Control", "public, max-age=3600");
+        res.setHeader("Cache-Control", "no-cache");
       }
       fs.createReadStream(filePath)
         .on("error", () => {
