@@ -109,6 +109,34 @@ html, body {
 .app-tile.is-hidden { opacity:.35; }
 .app-tile.is-hidden .hide-badge { background:#34c759; }
 
+/* ---------- PANEL (Dashboard) ---------- */
+.view-panel.active { display:grid; gap:12px; grid-template-columns: 1fr minmax(300px,360px); }
+.panel-map { grid-column:1; }
+.panel-map .map-slot { border-radius:var(--radius); overflow:hidden; }
+.pm-speed { position:absolute; left:16px; bottom:16px; z-index:5; display:flex; align-items:baseline; gap:6px;
+  background:rgba(0,0,0,.55); backdrop-filter:blur(10px); padding:10px 16px; border-radius:16px; border:1px solid rgba(255,255,255,.12); }
+body.day .pm-speed { background:rgba(255,255,255,.72); color:#0d1424; }
+.pm-speed b { font-size:30px; font-weight:800; font-variant-numeric:tabular-nums; }
+.pm-speed span { color:var(--ink-dim); font-size:12px; letter-spacing:1px; }
+.panel-side { display:grid; grid-template-rows:auto 1fr; gap:12px; min-height:0; }
+.np-card { display:flex; gap:14px; padding:16px; align-items:center; }
+.npc-art { width:84px; height:84px; border-radius:18px; display:grid; place-items:center; font-size:38px; flex:0 0 auto;
+  background:linear-gradient(135deg,var(--accent2),var(--accent)); color:#06101f;
+  box-shadow:0 10px 30px color-mix(in srgb,var(--accent) 40%, transparent); }
+.npc-info { min-width:0; flex:1; }
+.npc-title { font-size:20px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.npc-sub { color:var(--ink-dim); font-size:13px; margin:2px 0 10px; }
+.npc-controls { display:flex; gap:12px; align-items:center; }
+.npc-btn { width:44px; height:44px; border-radius:50%; border:1px solid var(--panel-brd); background:rgba(255,255,255,.06);
+  color:var(--ink); font-size:15px; cursor:pointer; }
+body.day .npc-btn { background:rgba(10,20,40,.05); }
+.npc-play { background:linear-gradient(120deg,var(--accent2),var(--accent)); color:#06101f; border:none; font-size:17px; }
+.npc-btn:active { transform:scale(.92); }
+.glance { padding:20px 22px; display:flex; flex-direction:column; justify-content:center; }
+.glance-clock { font-size:clamp(48px,7vw,68px); font-weight:800; line-height:1; font-variant-numeric:tabular-nums; }
+.glance-date { color:var(--ink-dim); font-size:16px; text-transform:capitalize; margin-top:6px; }
+.glance-wx { font-size:22px; margin-top:18px; }
+
 /* ---------- TABLERO ---------- */
 .view-dash.active { display:grid; gap:12px;
   grid-template-columns: minmax(300px,38%) 1fr; grid-template-rows: 1fr auto;
@@ -222,6 +250,8 @@ body.day .gauge-track { stroke:rgba(10,20,40,.10); }
 
 /* Retrato / pantallas chicas */
 @media (max-width:820px), (orientation:portrait) {
+  .view-panel.active { grid-template-columns:1fr; grid-template-rows:1fr auto; }
+  .panel-side { grid-template-rows:auto auto; }
   .view-dash { grid-template-columns:1fr; grid-template-rows:auto 1fr auto; grid-template-areas:"speedo" "map" "trip"; }
   .view-dash[data-layout="speedBig"] { grid-template-areas:"speedo" "map" "trip"; }
   .wx-grid { grid-template-columns:repeat(2,1fr); }

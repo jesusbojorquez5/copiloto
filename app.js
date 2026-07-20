@@ -69,7 +69,11 @@
   const dias=["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
   const meses=["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
   function tickClock(){ const d=new Date();
-    $("clock").textContent=`${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const hhmm=`${d.getHours()}:${String(d.getMinutes()).padStart(2,"0")}`;
+    const fecha=`${dias[d.getDay()]}, ${d.getDate()} ${meses[d.getMonth()]}`;
+    $("clock").textContent=hhmm;
+    const pc=$("pClock"); if(pc) pc.textContent=hhmm;
+    const pd=$("pDate"); if(pd) pd.textContent=fecha;
     const hh=$("homeHello"); if(hh){ const h=d.getHours();
       hh.textContent = h<12?"Buenos días":h<19?"Buenas tardes":"Buenas noches"; }
   }
@@ -87,8 +91,11 @@
   $("gaugeValue").style.strokeDashoffset=fullLen;
   let speedKmh=0;
   function renderSpeed(){ const u=U(); const disp=speedKmh*u.f;
-    $("speed").textContent=Math.round(clamp(disp,0,999));
+    const v=Math.round(clamp(disp,0,999));
+    $("speed").textContent=v;
     $("speedUnit").textContent=u.label;
+    const ps=$("pmSpeed"); if(ps) ps.textContent=v;
+    const pu=$("pmUnit"); if(pu) pu.textContent=u.label;
     const frac=clamp(disp/u.max,0,1);
     $("gaugeValue").style.strokeDashoffset=fullLen*(1-frac); }
 
@@ -135,10 +142,11 @@
     else { if(dayTiles&&map.hasLayer(dayTiles))map.removeLayer(dayTiles); nightTiles.addTo(map); } }
   function mountMap(slotId){ const el=$("map"); const slot=$(slotId);
     if(slot && el.parentElement!==slot){ slot.appendChild(el); }
-    setTimeout(()=>{ if(map){ map.invalidateSize(); if(lastPos) map.setView([lastPos.lat,lastPos.lon]); } },60); }
+    const fix=()=>{ if(map){ map.invalidateSize(true); if(lastPos) map.setView([lastPos.lat,lastPos.lon]); } };
+    requestAnimationFrame(fix); setTimeout(fix,150); setTimeout(fix,450); }
   function stowMap(){ const el=$("map"),h=$("mapHolder"); if(el.parentElement!==h) h.appendChild(el); }
   function updateMap(lat,lon){ if(!map)return; meMarker.setLatLng([lat,lon]);
-    if(currentView==="dash"||currentView==="maps"){ map.setView([lat,lon], firstFix?16:map.getZoom(), {animate:!firstFix}); }
+    if(currentView==="panel"||currentView==="dash"||currentView==="maps"){ map.setView([lat,lon], firstFix?16:map.getZoom(), {animate:!firstFix}); }
     firstFix=false; const mm=$("mapMsg"); if(mm) mm.classList.add("hidden"); }
 
   // ---------- Clima ----------
@@ -151,7 +159,9 @@
     const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,apparent_temperature,weather_code,is_day,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1`;
     const j=await (await fetch(url)).json(); const c=j.current||{}; const [desc,ico]=WMO[c.weather_code]||["—","·"];
     const hi=j.daily?Math.round(j.daily.temperature_2m_max[0]):null, lo=j.daily?Math.round(j.daily.temperature_2m_min[0]):null;
-    if($("homeWx")) $("homeWx").textContent=`${ico} ${Math.round(c.temperature_2m)}° · ${desc}`;
+    const resumen=`${ico} ${Math.round(c.temperature_2m)}° · ${desc}`;
+    if($("homeWx")) $("homeWx").textContent=resumen;
+    if($("pWx")) $("pWx").textContent=resumen;
     $("wxHeroIco").textContent=ico; $("wxHeroTemp").textContent=`${Math.round(c.temperature_2m)}°`;
     $("wxHeroDesc").textContent=desc; if(hi!=null)$("wxMax").textContent=`${hi}°`; if(lo!=null)$("wxMin").textContent=`${lo}°`;
     $("wxWind").textContent=`${Math.round(c.wind_speed_10m)} km/h`; $("wxFeel").textContent=`${Math.round(c.apparent_temperature)}°`;
@@ -191,6 +201,7 @@
   let wakeLock=null;
   async function keepAwake(){ try{ if("wakeLock" in navigator) wakeLock=await navigator.wakeLock.request("screen"); }catch(e){} }
   document.addEventListener("visibilitychange",()=>{ if(document.visibilityState==="visible")keepAwake(); });
+  window.addEventListener("resize",()=>{ if(map) map.invalidateSize(); });
 
   // ---------- Radio ----------
   const stations=[
@@ -204,15 +215,21 @@
   function renderStations(){ const w=$("stations"); w.innerHTML="";
     stations.forEach((s,i)=>{ const b=document.createElement("button"); b.className="station-chip"+(i===sIdx?" active":"");
       b.textContent=s.name; b.onclick=()=>{ loadStation(i); playRadio(); }; w.appendChild(b); }); }
+  function syncNow(){ const s=stations[sIdx];
+    ["npTitle","pnpTitle"].forEach(id=>{ const el=$(id); if(el) el.textContent=s.name; });
+    const t=playing?"❚❚":"▶"; ["radioToggle","pnpToggle"].forEach(id=>{ const el=$(id); if(el) el.textContent=t; }); }
   function loadStation(i){ sIdx=(i+stations.length)%stations.length; audio.src=stations[sIdx].url;
-    $("npTitle").textContent=stations[sIdx].name;
     if("mediaSession" in navigator) navigator.mediaSession.metadata=new MediaMetadata({title:stations[sIdx].name,artist:"Copiloto Radio"});
-    renderStations(); }
-  function playRadio(){ audio.play().then(()=>{playing=true;$("radioToggle").textContent="❚❚";}).catch(()=>{}); }
-  function pauseRadio(){ audio.pause(); playing=false; $("radioToggle").textContent="▶"; }
-  $("radioToggle").addEventListener("click",()=>{ if(!audio.src)loadStation(0); playing?pauseRadio():playRadio(); });
+    renderStations(); syncNow(); }
+  function playRadio(){ audio.play().then(()=>{playing=true;syncNow();}).catch(()=>{}); }
+  function pauseRadio(){ audio.pause(); playing=false; syncNow(); }
+  function toggleRadio(){ if(!audio.src)loadStation(0); playing?pauseRadio():playRadio(); }
+  $("radioToggle").addEventListener("click",toggleRadio);
   $("radioNext").addEventListener("click",()=>{ loadStation(sIdx+1); if(playing)playRadio(); });
   $("radioPrev").addEventListener("click",()=>{ loadStation(sIdx-1); if(playing)playRadio(); });
+  $("pnpToggle").addEventListener("click",toggleRadio);
+  $("pnpNext").addEventListener("click",()=>{ loadStation(sIdx+1); if(playing)playRadio(); });
+  $("pnpPrev").addEventListener("click",()=>{ loadStation(sIdx-1); if(playing)playRadio(); });
   $("vol").addEventListener("input",e=>audio.volume=parseFloat(e.target.value));
 
   // ---------- Rejilla de inicio ----------
@@ -236,11 +253,12 @@
   $("editApps").addEventListener("click",()=>{ editing=!editing; $("editApps").textContent=editing?"Listo":"Editar"; renderGrid(); });
 
   // ---------- Vistas ----------
-  let currentView="home";
+  let currentView="panel";
   function setView(name){ currentView=name;
     document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active", v.dataset.view===name));
     document.querySelectorAll(".dock-btn").forEach(b=>b.classList.toggle("active", b.dataset.go===name));
-    if(name==="dash"){ document.querySelector(".view-dash").dataset.layout=state.dashLayout; mountMap("mapSlotDash"); }
+    if(name==="panel"){ mountMap("mapSlotPanel"); }
+    else if(name==="dash"){ document.querySelector(".view-dash").dataset.layout=state.dashLayout; mountMap("mapSlotDash"); }
     else if(name==="maps"){ mountMap("mapSlotMaps"); }
     else { stowMap(); }
     if(name==="radio"){ if(!audio.src)loadStation(0); renderStations(); }
@@ -288,8 +306,9 @@
 
   // ---------- Arranque ----------
   function boot(){ $("start").classList.add("hidden"); $("app").classList.remove("hidden");
-    applyTheme(); renderGrid(); initMap(); setTimeout(()=>map&&map.invalidateSize(),200);
-    startGPS(); startCompass(); keepAwake(); loadStation(0); renderSpeed(); renderTrip();
+    applyTheme(); renderGrid(); initMap();
+    startGPS(); startCompass(); keepAwake(); loadStation(0); renderSpeed(); renderTrip(); tickClock();
+    setView("panel"); // Dashboard como pantalla principal (mapa + música + vistazo)
     const standalone=window.navigator.standalone===true||window.matchMedia("(display-mode: standalone)").matches;
     if(!standalone) setTimeout(()=>$("installTip").classList.remove("hidden"),1500);
   }

@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=4" />
 </head>
 <body>
   <!-- Arranque: un toque desbloquea GPS, brújula, audio y pantalla-encendida -->
@@ -48,7 +48,8 @@
         <div id="net" class="dock-gps">GPS</div>
       </div>
       <nav class="dock-nav">
-        <button class="dock-btn active" data-go="home" title="Inicio"><span>▦</span><small>Inicio</small></button>
+        <button class="dock-btn active" data-go="panel" title="Panel"><span>❖</span><small>Panel</small></button>
+        <button class="dock-btn" data-go="home" title="Apps"><span>▦</span><small>Apps</small></button>
         <button class="dock-btn" data-go="dash" title="Tablero"><span>◍</span><small>Tablero</small></button>
         <button class="dock-btn" data-go="maps" title="Mapas"><span>◈</span><small>Mapas</small></button>
         <button class="dock-btn" data-go="radio" title="Radio"><span>♫</span><small>Radio</small></button>
@@ -59,8 +60,35 @@
     <!-- Escenario: aquí se dibuja la vista activa -->
     <main class="stage">
 
+      <!-- PANEL (Dashboard estilo CarPlay): mapa + música + vistazo -->
+      <section class="view view-panel active" data-view="panel">
+        <div class="panel-map panel">
+          <div class="map-slot" id="mapSlotPanel"></div>
+          <div class="pm-speed"><b id="pmSpeed">0</b><span id="pmUnit">km/h</span></div>
+        </div>
+        <div class="panel-side">
+          <div class="np-card panel">
+            <div class="npc-art" id="pnpArt">♫</div>
+            <div class="npc-info">
+              <div class="npc-title" id="pnpTitle">Radio</div>
+              <div class="npc-sub">Copiloto Radio · en vivo</div>
+              <div class="npc-controls">
+                <button id="pnpPrev" class="npc-btn">⏮</button>
+                <button id="pnpToggle" class="npc-btn npc-play">▶</button>
+                <button id="pnpNext" class="npc-btn">⏭</button>
+              </div>
+            </div>
+          </div>
+          <div class="glance panel">
+            <div class="glance-clock" id="pClock">--:--</div>
+            <div class="glance-date" id="pDate">—</div>
+            <div class="glance-wx" id="pWx">—</div>
+          </div>
+        </div>
+      </section>
+
       <!-- INICIO: rejilla de apps -->
-      <section class="view view-home active" data-view="home">
+      <section class="view view-home" data-view="home">
         <div class="home-head">
           <div>
             <div class="home-hello" id="homeHello">Hola, Jesús</div>
@@ -194,6 +222,6 @@
   <audio id="radio" preload="none" crossorigin="anonymous"></audio>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=3"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
