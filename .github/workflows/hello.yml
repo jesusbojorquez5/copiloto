@@ -1,0 +1,7 @@
+name: hello
+on: { workflow_dispatch: {}, push: { branches: [main] } }
+jobs:
+  hi:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "hola desde Actions"
