@@ -1,11 +1,12 @@
-/* Copiloto service worker: cachea el cascarón para que abra al instante y sin red.
-   Mapa, clima y radio siguen necesitando internet (se degradan solos). */
-const CACHE = "copiloto-v5";
+/* Copiloto service worker.
+   HTML = red primero (siempre trae la versión nueva si hay internet, cae a caché sin red).
+   Assets versionados = caché primero (rápido). Así el ícono guardado se actualiza solo. */
+const CACHE = "copiloto-v6";
 const SHELL = [
   "./",
   "index.html",
-  "style.css?v=5",
-  "app.js?v=5",
+  "style.css?v=6",
+  "app.js?v=6",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/apple-touch-icon.png",
@@ -25,8 +26,22 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  // Solo maneja el propio origen; deja pasar mapa/clima/radio/leaflet a la red.
-  if (url.origin !== self.location.origin) return;
+  if (url.origin !== self.location.origin) return; // mapa/clima/YouTube van directo a la red
+
+  const isDoc = e.request.mode === "navigate" || e.request.destination === "document";
+  if (isDoc) {
+    // Red primero para el HTML: garantiza la última versión.
+    e.respondWith(
+      fetch(e.request).then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(e.request).then((h) => h || caches.match("index.html")))
+    );
+    return;
+  }
+
+  // Resto (assets versionados): caché primero, con respaldo de red.
   e.respondWith(
     caches.match(e.request).then((hit) =>
       hit ||
