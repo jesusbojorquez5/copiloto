@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="icons/icon-192.png" />
 
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css?v=4" />
+  <link rel="stylesheet" href="style.css?v=5" />
 </head>
 <body>
   <!-- Arranque: un toque desbloquea GPS, brújula, audio y pantalla-encendida -->
@@ -133,14 +133,18 @@
         </div>
       </section>
 
-      <!-- MAPAS -->
+      <!-- MAPAS + NAVEGACIÓN -->
       <section class="view view-maps" data-view="maps">
         <div class="map-slot map-full" id="mapSlotMaps"></div>
         <div id="mapMsg" class="map-msg">Buscando señal…</div>
+        <div class="nav-search">
+          <input id="navDest" type="text" placeholder="¿A dónde vamos?" autocomplete="off" />
+          <button id="navGo" class="nav-go">Ir</button>
+        </div>
+        <div id="navInfo" class="nav-info hidden"></div>
         <div class="map-actions">
+          <button id="navCancel" class="round-btn hidden" title="Terminar ruta">✕</button>
           <button id="recenter" class="round-btn" title="Centrar">◎</button>
-          <a class="pill-btn" href="https://maps.apple.com/" target="_blank" rel="noopener">Apple Maps</a>
-          <a class="pill-btn" href="https://waze.com/ul" target="_blank" rel="noopener">Waze</a>
         </div>
       </section>
 
@@ -157,6 +161,27 @@
           </div>
           <div class="np-vol"><span>🔈</span><input id="vol" type="range" min="0" max="1" step="0.05" value="0.7"/><span>🔊</span></div>
           <div class="np-stations" id="stations"></div>
+        </div>
+      </section>
+
+      <!-- MÚSICA (reproductor de YouTube en vivo) -->
+      <section class="view view-music" data-view="music">
+        <div class="music-wrap">
+          <div class="yt-frame"><div id="ytplayer"></div></div>
+          <div class="music-side">
+            <div class="music-search">
+              <input id="ytInput" type="text" placeholder="Pega un link de YouTube (canción o lista)" autocomplete="off" />
+              <button id="ytLoad" class="nav-go">Reproducir</button>
+            </div>
+            <div class="music-title" id="ytTitle">Pega una canción o toca una lista abajo</div>
+            <div class="music-controls">
+              <button id="ytPrev" class="np-btn">⏮</button>
+              <button id="ytToggle" class="np-btn np-play">▶</button>
+              <button id="ytNext" class="np-btn">⏭</button>
+            </div>
+            <div class="music-presets" id="ytPresets"></div>
+            <div class="music-note">La música suena mientras la app está abierta y la pantalla encendida.</div>
+          </div>
         </div>
       </section>
 
@@ -222,6 +247,7 @@
   <audio id="radio" preload="none" crossorigin="anonymous"></audio>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="app.js?v=4"></script>
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script src="app.js?v=5"></script>
 </body>
 </html>

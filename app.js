@@ -8,7 +8,7 @@
   const APPS = [
     { id:"tablero",  name:"Tablero", type:"view", view:"dash",    emoji:"🚗", grad:["#3a7bff","#39d0ff"] },
     { id:"mapas",    name:"Mapas",   type:"view", view:"maps",    emoji:"🗺️", grad:["#34c759","#5ac8fa"] },
-    { id:"musica",   name:"Música",  type:"link", url:"https://music.apple.com",     emoji:"🎵", grad:["#fb5c74","#fa2b56"] },
+    { id:"musica",   name:"Música",  type:"view", view:"music",   emoji:"🎵", grad:["#fb5c74","#fa2b56"] },
     { id:"spotify",  name:"Spotify", type:"link", url:"https://open.spotify.com",     emoji:"🎧", grad:["#1ed760","#1db954"] },
     { id:"radio",    name:"Radio",   type:"view", view:"radio",   emoji:"📻", grad:["#ff9f0a","#ff375f"] },
     { id:"ytmusic",  name:"YT Music",type:"link", url:"https://music.youtube.com",    emoji:"▶️", grad:["#ff2d2d","#cc0000"] },
@@ -215,9 +215,8 @@
   function renderStations(){ const w=$("stations"); w.innerHTML="";
     stations.forEach((s,i)=>{ const b=document.createElement("button"); b.className="station-chip"+(i===sIdx?" active":"");
       b.textContent=s.name; b.onclick=()=>{ loadStation(i); playRadio(); }; w.appendChild(b); }); }
-  function syncNow(){ const s=stations[sIdx];
-    ["npTitle","pnpTitle"].forEach(id=>{ const el=$(id); if(el) el.textContent=s.name; });
-    const t=playing?"❚❚":"▶"; ["radioToggle","pnpToggle"].forEach(id=>{ const el=$(id); if(el) el.textContent=t; }); }
+  function syncNow(){ const s=stations[sIdx]; const el=$("npTitle"); if(el) el.textContent=s.name;
+    const rt=$("radioToggle"); if(rt) rt.textContent=playing?"❚❚":"▶"; }
   function loadStation(i){ sIdx=(i+stations.length)%stations.length; audio.src=stations[sIdx].url;
     if("mediaSession" in navigator) navigator.mediaSession.metadata=new MediaMetadata({title:stations[sIdx].name,artist:"Copiloto Radio"});
     renderStations(); syncNow(); }
@@ -227,10 +226,72 @@
   $("radioToggle").addEventListener("click",toggleRadio);
   $("radioNext").addEventListener("click",()=>{ loadStation(sIdx+1); if(playing)playRadio(); });
   $("radioPrev").addEventListener("click",()=>{ loadStation(sIdx-1); if(playing)playRadio(); });
-  $("pnpToggle").addEventListener("click",toggleRadio);
-  $("pnpNext").addEventListener("click",()=>{ loadStation(sIdx+1); if(playing)playRadio(); });
-  $("pnpPrev").addEventListener("click",()=>{ loadStation(sIdx-1); if(playing)playRadio(); });
   $("vol").addEventListener("input",e=>audio.volume=parseFloat(e.target.value));
+
+  // ---------- Música (reproductor de YouTube, en vivo) ----------
+  let ytPlayer=null, ytReady=false, ytPlaying=false, ytPending=null;
+  const YT_PRESETS=[ {name:"Radio Pop",id:"RDdQw4w9WgXcQ",kind:"list"}, {name:"Fiesta",id:"RDOPf0YbXqDm0",kind:"list"} ];
+  window.onYouTubeIframeAPIReady=function(){ ytReady=true; };
+  function ensureYT(){ if(ytPlayer||!ytReady||typeof YT==="undefined"||!YT.Player) return;
+    ytPlayer=new YT.Player("ytplayer",{ height:"100%", width:"100%",
+      playerVars:{ playsinline:1, rel:0, modestbranding:1 },
+      events:{ onReady:()=>{ if(ytPending){ loadYT(ytPending); ytPending=null; } syncMusic(); },
+               onStateChange:e=>{ ytPlaying=(e.data===1); syncMusic(); } } }); }
+  function parseYT(input){ input=(input||"").trim(); let video=null,list=null;
+    try{ const u=new URL(input); list=u.searchParams.get("list");
+      if(u.hostname.indexOf("youtu.be")>=0) video=u.pathname.slice(1); else video=u.searchParams.get("v"); }
+    catch(_){ if(/^[A-Za-z0-9_-]{11}$/.test(input)) video=input; }
+    return {video,list}; }
+  function loadYT(arg){ ensureYT(); if(!ytPlayer){ ytPending=arg; return; }
+    if(arg.list) ytPlayer.loadPlaylist({list:arg.list}); else if(arg.video) ytPlayer.loadVideoById(arg.video); }
+  function playFromInput(){ const p=parseYT($("ytInput").value);
+    if(p.list) loadYT({list:p.list}); else if(p.video) loadYT({video:p.video}); }
+  function syncMusic(){ let title="Música";
+    try{ if(ytPlayer&&ytPlayer.getVideoData){ const d=ytPlayer.getVideoData(); if(d&&d.title) title=d.title; } }catch(_){}
+    ["ytTitle","pnpTitle"].forEach(id=>{ const el=$(id); if(el) el.textContent=title; });
+    const t=ytPlaying?"❚❚":"▶"; ["ytToggle","pnpToggle"].forEach(id=>{ const el=$(id); if(el) el.textContent=t; }); }
+  function ytToggleFn(){ ensureYT(); if(!ytPlayer){ setView("music"); return; }
+    if(ytPlaying) ytPlayer.pauseVideo(); else ytPlayer.playVideo(); }
+  function ytNextFn(){ if(ytPlayer&&ytPlayer.nextVideo) ytPlayer.nextVideo(); else setView("music"); }
+  function ytPrevFn(){ if(ytPlayer&&ytPlayer.previousVideo) ytPlayer.previousVideo(); else setView("music"); }
+  function renderPresets(){ const w=$("ytPresets"); if(!w||w.childElementCount)return;
+    YT_PRESETS.forEach(p=>{ const b=document.createElement("button"); b.className="station-chip"; b.textContent=p.name;
+      b.onclick=()=>{ loadYT(p.kind==="list"?{list:p.id}:{video:p.id}); }; w.appendChild(b); }); }
+  $("ytLoad").addEventListener("click",playFromInput);
+  $("ytInput").addEventListener("keydown",e=>{ if(e.key==="Enter")playFromInput(); });
+  $("ytToggle").addEventListener("click",ytToggleFn);
+  $("ytNext").addEventListener("click",ytNextFn);
+  $("ytPrev").addEventListener("click",ytPrevFn);
+  $("pnpToggle").addEventListener("click",ytToggleFn);
+  $("pnpNext").addEventListener("click",ytNextFn);
+  $("pnpPrev").addEventListener("click",ytPrevFn);
+
+  // ---------- Navegación (OpenStreetMap + OSRM, sin llaves) ----------
+  let routeLayer=null, destMarker=null;
+  async function geocode(q){ try{ const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
+    const j=await r.json(); if(j&&j[0]) return {lat:+j[0].lat,lon:+j[0].lon,name:j[0].display_name}; }catch(_){} return null; }
+  async function fetchRoute(a,b){ try{ const u=`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=full&geometries=geojson`;
+    const j=await (await fetch(u)).json(); return j.routes&&j.routes[0]; }catch(_){ return null; } }
+  function showNavInfo(eta,dist){ const n=$("navInfo"); if(!n)return; n.classList.remove("hidden");
+    n.innerHTML=`<div><div class="ni-eta">${eta}</div><div class="ni-dist">${dist||""}</div></div>`; }
+  function clearRoute(){ if(routeLayer&&map){ map.removeLayer(routeLayer); routeLayer=null; }
+    if(destMarker&&map){ map.removeLayer(destMarker); destMarker=null; }
+    const n=$("navInfo"); if(n) n.classList.add("hidden"); const c=$("navCancel"); if(c) c.classList.add("hidden"); }
+  async function startNav(){ const q=$("navDest").value.trim(); if(!q)return;
+    if(!lastPos){ showNavInfo("Espera al GPS…","Aún sin ubicación"); return; }
+    showNavInfo("Buscando…",""); const dest=await geocode(q);
+    if(!dest){ showNavInfo("No lo encontré","Prueba otro nombre"); return; }
+    const r=await fetchRoute(lastPos,dest); if(!r){ showNavInfo("Sin ruta","Intenta de nuevo"); return; }
+    clearRoute();
+    const pts=r.geometry.coordinates.map(c=>[c[1],c[0]]);
+    routeLayer=L.polyline(pts,{color:"#3a7bff",weight:7,opacity:.9}).addTo(map);
+    destMarker=L.marker([dest.lat,dest.lon]).addTo(map);
+    map.fitBounds(routeLayer.getBounds(),{padding:[60,60]});
+    showNavInfo(`${Math.round(r.duration/60)} min`, `${(r.distance/1000).toFixed(1)} km · ${dest.name.split(",")[0]}`);
+    const c=$("navCancel"); if(c) c.classList.remove("hidden"); }
+  $("navGo").addEventListener("click",startNav);
+  $("navDest").addEventListener("keydown",e=>{ if(e.key==="Enter")startNav(); });
+  $("navCancel").addEventListener("click",()=>{ $("navDest").value=""; clearRoute(); });
 
   // ---------- Rejilla de inicio ----------
   let editing=false;
@@ -262,6 +323,7 @@
     else if(name==="maps"){ mountMap("mapSlotMaps"); }
     else { stowMap(); }
     if(name==="radio"){ if(!audio.src)loadStation(0); renderStations(); }
+    if(name==="music"){ ensureYT(); renderPresets(); }
     if(name==="weather" && lastWxAt) fetchWeather(lastWxAt.lat,lastWxAt.lon);
     if(name==="settings") renderSettings();
     if(name==="home"){ editing=false; $("editApps").textContent="Editar"; renderGrid(); }
@@ -307,7 +369,7 @@
   // ---------- Arranque ----------
   function boot(){ $("start").classList.add("hidden"); $("app").classList.remove("hidden");
     applyTheme(); renderGrid(); initMap();
-    startGPS(); startCompass(); keepAwake(); loadStation(0); renderSpeed(); renderTrip(); tickClock();
+    startGPS(); startCompass(); keepAwake(); loadStation(0); renderSpeed(); renderTrip(); tickClock(); syncMusic();
     setView("panel"); // Dashboard como pantalla principal (mapa + música + vistazo)
     const standalone=window.navigator.standalone===true||window.matchMedia("(display-mode: standalone)").matches;
     if(!standalone) setTimeout(()=>$("installTip").classList.remove("hidden"),1500);
